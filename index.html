@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Royal Vault - Trial Edition</title>
+  <style>
+    :root {
+      --bg: #090c10;
+      --card-bg: #131922;
+      --gold: #d4af37;
+      --gold-bright: #ffd700;
+      --brass: #b8860b;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --danger: #f85149;
+      --success: #2ea043;
+      --parchment: #f4ecd8;
+      --parchment-border: #8b5a2b;
+      --ink: #2b1810;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: radial-gradient(circle at center, #1b222d 0%, #080a0e 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    header {
+      width: 100%;
+      max-width: 1220px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      background: rgba(19, 25, 34, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .badge-trial { background: #6e40c9; color: #fff; }
+    .level-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: #21262d;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold-bright);
+    }
+    .tab-btn.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-charter {
+      background: #232b38;
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-charter:hover {
+      background: var(--gold);
+      color: #000;
+    }
+    .stats {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .main-board {
+      display: grid;
+      grid-template-columns: 240px 1fr 240px;
+      gap: 14px;
+      width: 100%;
+      max-width: 1220px;
+      height: 600px;
+    }
+
+    .key-rack {
+      background: rgba(19, 25, 34, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .rack-header {
+      font-size: 0.85rem;
+      color: var(--gold);
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      gap: 4px;
+      flex: 1;
+    }
+    .key-btn {
+      background: linear-gradient(145deg, #242c38, #171d26);
+      border: 1px solid #3c4554;
+      color: #cbd5e0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .key-btn:hover:not(.disabled) {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold-bright);
+      transform: scale(1.08);
+      z-index: 2;
+    }
+    .key-btn.slotted {
+      background: #111418;
+      border-color: #21262d;
+      color: #484f58;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
+    .key-btn.out-of-bounds {
+      opacity: 0.22;
+      cursor: not-allowed;
+    }
+
+    .vault-chamber {
+      background: radial-gradient(circle at center, #1b2432 0%, #0c1017 100%);
+      border: 2px solid var(--brass);
+      border-radius: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 8px 32px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+
+    .vault-outer-rim {
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      border: 12px double #5c4918;
+      background: radial-gradient(circle, #27303d 40%, #10141c 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 35px rgba(212, 175, 55, 0.25);
+    }
+
+    .vault-core {
+      width: 175px;
+      height: 175px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #3d3113 0%, #171306 100%);
+      border: 4px solid var(--gold);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255, 215, 0, 0.4);
+      z-index: 5;
+    }
+    .target-label {
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .target-val {
+      font-size: 3.2rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+      line-height: 1;
+      margin: 4px 0;
+    }
+    .factor-count-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .socket {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #0f131a;
+      border: 2px dashed #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: var(--gold-bright);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 6;
+      box-shadow: inset 0 0 8px #000;
+    }
+    .socket.filled {
+      background: radial-gradient(circle, #fde047 0%, #ca8a04 100%);
+      color: #000;
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px rgba(253, 224, 71, 0.6);
+      transform: scale(1.05);
+    }
+    .socket.correct {
+      background: radial-gradient(circle, #4ade80 0%, #15803d 100%) !important;
+      color: #000 !important;
+      border-color: #bbf7d0 !important;
+      box-shadow: 0 0 16px #22c55e !important;
+    }
+    .socket.incorrect {
+      background: radial-gradient(circle, #f87171 0%, #b91c1c 100%) !important;
+      color: #fff !important;
+      border-color: #fca5a5 !important;
+      box-shadow: 0 0 16px #ef4444 !important;
+      animation: socketShake 0.4s ease-in-out;
+    }
+    @keyframes socketShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+
+    .controls-bottom {
+      position: absolute;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 8;
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, #ffd700 0%, #d4af37 100%);
+      color: #000;
+      font-weight: 800;
+      padding: 9px 24px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-submit:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+      filter: grayscale(1);
+    }
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+    }
+    .btn-clear {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .btn-clear:hover {
+      color: #fff;
+      border-color: #64748b;
+    }
+
+    .status-banner {
+      position: absolute;
+      top: 14px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.5);
+      padding: 4px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      z-index: 8;
+    }
+
+    /* ROYAL CHARTER MODAL (HOW TO PLAY) */
+    .charter-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 7, 12, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .royal-scroll {
+      background: linear-gradient(180deg, #f7f1e1 0%, #ebdcb9 100%);
+      color: var(--ink);
+      width: 100%;
+      max-width: 560px;
+      border-radius: 8px;
+      border: 8px double var(--parchment-border);
+      box-shadow: 0 0 50px rgba(0,0,0,0.9), inset 0 0 30px rgba(139, 90, 43, 0.35);
+      position: relative;
+      padding: 30px 32px 24px;
+      animation: unrollScroll 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes unrollScroll {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .scroll-close-x {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(139, 90, 43, 0.15);
+      border: 1px solid var(--parchment-border);
+      color: var(--ink);
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .scroll-close-x:hover {
+      background: var(--parchment-border);
+      color: #fff;
+    }
+    .royal-crest-seal {
+      font-size: 2.4rem;
+      text-align: center;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .royal-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      text-align: center;
+      font-size: 1.6rem;
+      color: #5c2c0e;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      border-bottom: 2px solid #8b5a2b;
+      padding-bottom: 6px;
+    }
+    .royal-subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      font-style: italic;
+      color: #7a481e;
+      margin-bottom: 18px;
+    }
+    .instruction-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .step-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .step-num {
+      background: #8b5a2b;
+      color: #fff;
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.82rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    }
+    .math-rule-box {
+      background: rgba(139, 90, 43, 0.12);
+      border-left: 4px solid #8b5a2b;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    .btn-charter-ok {
+      width: 100%;
+      background: linear-gradient(180deg, #8b5a2b 0%, #5c2c0e 100%);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #3d1c08;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+    }
+    .btn-charter-ok:hover {
+      background: linear-gradient(180deg, #a46c36 0%, #6d3411 100%);
+      transform: translateY(-1px);
+    }
+
+    /* HARD PAYWALL OVERLAY */
+    .paywall-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 7, 10, 0.96);
+      backdrop-filter: blur(8px);
+      z-index: 10001;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .paywall-card {
+      background: linear-gradient(160deg, #1c2128 0%, #0d1117 100%);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      padding: 36px 30px;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(212, 175, 55, 0.3);
+    }
+    .paywall-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .paywall-title { font-size: 1.8rem; color: var(--gold-bright); margin-bottom: 10px; font-weight: 800; }
+    .paywall-desc { font-size: 0.95rem; color: #c9d1d9; line-height: 1.6; margin-bottom: 24px; }
+    .feature-list {
+      text-align: left;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 0.88rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-cta {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, #ffd700 0%, #d4af37 100%);
+      color: #000;
+      font-weight: 800;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="badge badge-trial">Trial Demo</span>
+      <h2 style="font-size: 1.15rem; letter-spacing: 1px; color: var(--gold);">The Royal Vault</h2>
+    </div>
+
+    <div class="level-tabs">
+      <button class="tab-btn active" id="tab-easy" onclick="switchTier('easy')">Easy (0/5)</button>
+      <button class="tab-btn" id="tab-moderate" onclick="switchTier('moderate')">Moderate (0/5)</button>
+      <button class="tab-btn" id="tab-difficult" onclick="switchTier('difficult')">Difficult (0/5)</button>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-charter" onclick="openCharter()">
+        <span>&#128220;</span> Charter (How to Play)
+      </button>
+      <div class="stats">
+        <span>Vault: <b id="trial-counter-val" style="color: var(--gold-bright);">1 / 5</b></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-board">
+    <!-- LHS 1-50 -->
+    <div class="key-rack">
+      <div class="rack-header">Keys 1 &mdash; 50</div>
+      <div class="grid-container" id="lhs-grid"></div>
+    </div>
+
+    <!-- Center Vault -->
+    <div class="vault-chamber">
+      <div class="status-banner" id="status-banner">Tap keys to slot them into the vault sockets</div>
+
+      <div class="vault-outer-rim" id="vault-rim">
+        <div class="vault-core">
+          <div class="target-label">Target Safe</div>
+          <div class="target-val" id="target-number">--</div>
+          <div class="factor-count-hint" id="factor-hint">Find all factors</div>
+        </div>
+      </div>
+
+      <div class="controls-bottom">
+        <button class="btn-clear" onclick="clearAllSockets()">Clear Sockets</button>
+        <button class="btn-submit" id="btn-submit" onclick="submitVaultHypothesis()" disabled>
+          <span>&#128272;</span> Turn the Key
+        </button>
+      </div>
+    </div>
+
+    <!-- RHS 51-100 -->
+    <div class="key-rack">
+      <div class="rack-header">Keys 51 &mdash; 100</div>
+      <div class="grid-container" id="rhs-grid"></div>
+    </div>
+  </div>
+
+  <!-- ROYAL CHARTER NOTIFICATION MODAL (HOW TO PLAY) -->
+  <div class="charter-modal" id="charter-modal">
+    <div class="royal-scroll">
+      <button class="scroll-close-x" onclick="closeCharter()">&times;</button>
+      <div class="royal-crest-seal">&#128081;</div>
+      <div class="royal-title">Royal Decree &amp; Charter</div>
+      <div class="royal-subtitle">Official Instructions for Cracking the Royal Vault</div>
+
+      <div class="instruction-steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div><b>Inspect the Target:</b> The number at the center is the target safe. The circular perimeter sockets show <i>exactly how many distinct factors</i> exist.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div><b>Tap Your Factors:</b> Click any number on the Left (1–50) or Right (51–100) racks. It automatically flies into the next open keyhole socket! <i>(Tap a slotted socket if you want to remove it)</i>.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div><b>Turn the Key to Verify:</b> Once all sockets are filled, click <b>Turn the Key</b>:
+            <ul style="margin-left: 20px; margin-top: 4px;">
+              <li><span style="color: #15803d; font-weight: bold;">Green:</span> Correct factor confirmed!</li>
+              <li><span style="color: #b91c1c; font-weight: bold;">Red:</span> Not a factor! Tap red keys to remove and replace them.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="math-rule-box">
+        &#128161; <b>Mathematical Law:</b> Every factor divides the target number cleanly with zero remainder ($a 	imes b = N$). No factor can exceed the target number!
+      </div>
+
+      <button class="btn-charter-ok" onclick="closeCharter()">Enter Chamber &amp; Begin</button>
+    </div>
+  </div>
+
+  <!-- PERSISTENT HARD PAYWALL MODAL -->
+  <div class="paywall-modal" id="paywall-modal">
+    <div class="paywall-card">
+      <div class="paywall-icon">&#128274;</div>
+      <div class="paywall-title">Trial Period Complete</div>
+      <p class="paywall-desc">
+        You have successfully completed all <b>5 trial chambers</b> for this level tier. 
+        The trial demo has concluded and is permanently locked on this device.
+      </p>
+      <div class="feature-list">
+        <div>&#9989; Unlimited play across all 100 numbers</div>
+        <div>&#9989; Direct manual number selector & custom targets</div>
+        <div>&#9989; Complete Easy, Moderate & Difficult suites</div>
+        <div>&#9989; Live factor-pair decoder and diagnostic reports</div>
+      </div>
+      <button class="btn-cta" onclick="window.open('https://your-purchase-link.com', '_blank')">
+        Unlock Full Royal Edition
+      </button>
+      <div style="margin-top: 14px; font-size: 0.78rem; color: var(--text-muted);">Browser storage locked. Refreshing will not restore trials.</div>
+    </div>
+  </div>
+
+  <footer style="margin-top: 14px; text-align: center; font-size: 0.78rem; color: #8b949e; letter-spacing: 0.5px;">
+    &copy; 2026 <span style="color: #d4af37; font-weight: 600;">RJ Digital Interactive Maths</span>. All Rights Reserved. &bull; Concept &amp; Pedagogical Design
+  </footer>
+
+  <script>
+    const STORAGE_KEY = "royal_vault_strict_trial_v3";
+    const CHARTER_STORAGE_KEY = "royal_vault_charter_viewed";
+
+    const TIERS = {
+      easy: { name: "Easy", targets: [7, 9, 14, 21, 25] },
+      moderate: { name: "Moderate", targets: [16, 18, 20, 24, 28] },
+      difficult: { name: "Difficult", targets: [36, 60, 72, 84, 100] }
+    };
+
+    let trialState = loadTrialState();
+    let currentTier = "easy";
+    let currentTargetIndex = 0;
+    let currentFactors = [];
+    let slottedKeys = []; // Array of entered values corresponding to sockets
+    let isInspected = false;
+
+    function loadTrialState() {
+      try {
+        const d = localStorage.getItem(STORAGE_KEY);
+        if (d) return JSON.parse(d);
+      } catch (e) {}
+      return {
+        easy: { used: 0, locked: false },
+        moderate: { used: 0, locked: false },
+        difficult: { used: 0, locked: false }
+      };
+    }
+
+    function saveTrialState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(trialState)); } catch (e) {}
+    }
+
+    function getFactors(n) {
+      let f = [];
+      for (let i = 1; i <= n; i++) if (n % i === 0) f.push(i);
+      return f;
+    }
+
+    function initRacks() {
+      const lhs = document.getElementById("lhs-grid");
+      const rhs = document.getElementById("rhs-grid");
+      lhs.innerHTML = "";
+      rhs.innerHTML = "";
+
+      for (let i = 1; i <= 50; i++) {
+        const btn = document.createElement("button");
+        btn.className = "key-btn";
+        btn.id = "key-" + i;
+        btn.textContent = i;
+        btn.onclick = () => onKeyTapped(i);
+        lhs.appendChild(btn);
+      }
+      for (let i = 51; i <= 100; i++) {
+        const btn = document.createElement("button");
+        btn.className = "key-btn";
+        btn.id = "key-" + i;
+        btn.textContent = i;
+        btn.onclick = () => onKeyTapped(i);
+        rhs.appendChild(btn);
+      }
+    }
+
+    function switchTier(tierKey) {
+      if (trialState[tierKey].locked) {
+        currentTier = tierKey;
+        renderHeader();
+        showPaywall();
+        return;
+      }
+      currentTier = tierKey;
+      currentTargetIndex = trialState[tierKey].used;
+      renderHeader();
+      loadVault();
+    }
+
+    function getCurrentTarget() {
+      return TIERS[currentTier].targets[currentTargetIndex];
+    }
+
+    function renderHeader() {
+      ["easy", "moderate", "difficult"].forEach(t => {
+        const btn = document.getElementById("tab-" + t);
+        btn.className = "tab-btn" + (currentTier === t ? " active" : "") + (trialState[t].locked ? " locked" : "");
+        const used = trialState[t].used;
+        btn.textContent = `${TIERS[t].name} (${used}/5)`;
+      });
+      const usedInTier = trialState[currentTier].used;
+      document.getElementById("trial-counter-val").textContent = `${Math.min(usedInTier + 1, 5)} / 5`;
+    }
+
+    function loadVault() {
+      if (trialState[currentTier].locked) {
+        showPaywall();
+        return;
+      }
+
+      const target = getCurrentTarget();
+      currentFactors = getFactors(target);
+      slottedKeys = new Array(currentFactors.length).fill(null);
+      isInspected = false;
+
+      document.getElementById("target-number").textContent = target;
+      document.getElementById("factor-hint").textContent = `${currentFactors.length} Keyholes Required`;
+      document.getElementById("status-banner").textContent = `Tap numbers from racks to fill all ${currentFactors.length} keyholes`;
+
+      renderSockets(currentFactors.length);
+      updateRacks();
+      updateSubmitButton();
+    }
+
+    function renderSockets(count) {
+      const rim = document.getElementById("vault-rim");
+      rim.querySelectorAll(".socket").forEach(e => e.remove());
+
+      const radius = 150;
+      const center = 190;
+
+      for (let i = 0; i < count; i++) {
+        const angle = (2 * Math.PI * i / count) - (Math.PI / 2);
+        const x = center + radius * Math.cos(angle) - 22;
+        const y = center + radius * Math.sin(angle) - 22;
+
+        const sock = document.createElement("div");
+        sock.className = "socket";
+        sock.id = "socket-" + i;
+        sock.style.left = x + "px";
+        sock.style.top = y + "px";
+        sock.innerHTML = "&#128273;";
+        sock.onclick = () => onSocketTapped(i);
+        rim.appendChild(sock);
+      }
+    }
+
+    function onKeyTapped(num) {
+      const target = getCurrentTarget();
+      if (num > target) {
+        document.getElementById("status-banner").textContent = `Rule Alert: ${num} > ${target}. Factors can never exceed the target.`;
+        return;
+      }
+      if (slottedKeys.includes(num)) {
+        // If already slotted, remove it on second tap
+        const idx = slottedKeys.indexOf(num);
+        removeKeyFromSocket(idx);
+        return;
+      }
+
+      // Find first empty socket
+      const emptyIdx = slottedKeys.indexOf(null);
+      if (emptyIdx === -1) {
+        document.getElementById("status-banner").textContent = `All sockets are full! Press 'Turn the Key' to verify.`;
+        return;
+      }
+
+      slottedKeys[emptyIdx] = num;
+      isInspected = false; // Reset verification styles on edit
+      updateSocketVisuals();
+      updateRacks();
+      updateSubmitButton();
+    }
+
+    function onSocketTapped(socketIdx) {
+      if (slottedKeys[socketIdx] !== null) {
+        removeKeyFromSocket(socketIdx);
+      }
+    }
+
+    function removeKeyFromSocket(idx) {
+      slottedKeys[idx] = null;
+      isInspected = false;
+      updateSocketVisuals();
+      updateRacks();
+      updateSubmitButton();
+      document.getElementById("status-banner").textContent = "Socket cleared. Tap another key to replace it.";
+    }
+
+    function clearAllSockets() {
+      slottedKeys = new Array(currentFactors.length).fill(null);
+      isInspected = false;
+      updateSocketVisuals();
+      updateRacks();
+      updateSubmitButton();
+      document.getElementById("status-banner").textContent = "All sockets emptied.";
+    }
+
+    function updateRacks() {
+      const target = getCurrentTarget();
+      for (let i = 1; i <= 100; i++) {
+        const btn = document.getElementById("key-" + i);
+        if (!btn) continue;
+        btn.classList.remove("slotted", "out-of-bounds");
+
+        if (slottedKeys.includes(i)) {
+          btn.classList.add("slotted");
+        } else if (i > target) {
+          btn.classList.add("out-of-bounds");
+        }
+      }
+    }
+
+    function updateSocketVisuals() {
+      slottedKeys.forEach((val, idx) => {
+        const s = document.getElementById("socket-" + idx);
+        if (!s) return;
+        s.classList.remove("filled", "correct", "incorrect");
+
+        if (val !== null) {
+          s.classList.add("filled");
+          s.textContent = val;
+
+          if (isInspected) {
+            if (currentFactors.includes(val)) {
+              s.classList.add("correct");
+            } else {
+              s.classList.add("incorrect");
+            }
+          }
+        } else {
+          s.innerHTML = "&#128273;";
+        }
+      });
+    }
+
+    function updateSubmitButton() {
+      const allFilled = !slottedKeys.includes(null);
+      document.getElementById("btn-submit").disabled = !allFilled;
+    }
+
+    function submitVaultHypothesis() {
+      isInspected = true;
+      updateSocketVisuals();
+
+      const target = getCurrentTarget();
+      const wrongValues = slottedKeys.filter(k => !currentFactors.includes(k));
+
+      if (wrongValues.length === 0) {
+        // 100% Correct
+        document.getElementById("status-banner").innerHTML = 
+          `<b style="color: #4ade80;">&#127881; SUCCESS! All ${currentFactors.length} factors correct! Vault unlocking...</b>`;
+        document.getElementById("btn-submit").disabled = true;
+
+        setTimeout(() => {
+          handleVaultCleared();
+        }, 1500);
+      } else {
+        // Has Errors
+        document.getElementById("status-banner").innerHTML = 
+          `<b style="color: #f87171;">&#9888; ${wrongValues.length} incorrect key(s) highlighted in RED! Tap to remove and correct.</b>`;
+      }
+    }
+
+    function handleVaultCleared() {
+      trialState[currentTier].used += 1;
+      saveTrialState();
+      renderHeader();
+
+      if (trialState[currentTier].used >= 5) {
+        trialState[currentTier].locked = true;
+        saveTrialState();
+        renderHeader();
+        setTimeout(showPaywall, 800);
+        return;
+      }
+
+      currentTargetIndex = trialState[currentTier].used;
+      loadVault();
+    }
+
+    function showPaywall() {
+      document.getElementById("paywall-modal").style.display = "flex";
+    }
+
+    function openCharter() {
+      document.getElementById("charter-modal").style.display = "flex";
+    }
+
+    function closeCharter() {
+      document.getElementById("charter-modal").style.display = "none";
+      try { localStorage.setItem(CHARTER_STORAGE_KEY, "true"); } catch (e) {}
+    }
+
+    // Auto open Charter on first visit
+    function checkFirstTimeCharter() {
+      try {
+        if (!localStorage.getItem(CHARTER_STORAGE_KEY)) {
+          openCharter();
+        }
+      } catch (e) {
+        openCharter();
+      }
+    }
+
+    // Initialize Game
+    initRacks();
+    if (trialState[currentTier].locked) {
+      renderHeader();
+      showPaywall();
+    } else {
+      currentTargetIndex = trialState[currentTier].used;
+      renderHeader();
+      loadVault();
+      checkFirstTimeCharter();
+    }
+  </script>
+</body>
+</html>
